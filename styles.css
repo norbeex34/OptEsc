@@ -1,0 +1,307 @@
+:root {
+  color-scheme: light;
+  --bg: #0b1020;
+  --card: #111a33;
+  --text: #e8eefc;
+  --muted: rgba(232, 238, 252, 0.72);
+  --border: rgba(232, 238, 252, 0.14);
+  --primary: #4c8dff;
+  --danger: #ff4c75;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+    "Apple Color Emoji", "Segoe UI Emoji";
+  background: radial-gradient(900px 500px at 15% 10%, #18244a 0%, var(--bg) 60%);
+  color: var(--text);
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px 16px 64px;
+}
+
+.header h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+  letter-spacing: 0.2px;
+}
+
+.header p {
+  margin: 0 0 20px;
+  color: var(--muted);
+}
+
+.card {
+  background: rgba(17, 26, 51, 0.72);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  backdrop-filter: blur(10px);
+  margin-top: 12px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 860px) {
+  .grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.grid3 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 860px) {
+  .grid3 {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
+.field label {
+  display: block;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+input[type="file"] {
+  width: 100%;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(11, 16, 32, 0.6);
+  color: var(--text);
+}
+
+input[type="number"],
+input[type="text"],
+select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(232, 238, 252, 0.16);
+  background: rgba(11, 16, 32, 0.55);
+  color: var(--text);
+  direction: ltr !important;
+  text-align: left !important;
+  unicode-bidi: normal !important;
+}
+
+select {
+  cursor: pointer;
+}
+
+.actions {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+button {
+  border: 1px solid var(--border);
+  background: rgba(11, 16, 32, 0.65);
+  color: var(--text);
+  padding: 9px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.05s ease, background 0.12s ease;
+}
+
+button:hover {
+  background: rgba(11, 16, 32, 0.82);
+}
+
+button:active {
+  transform: translateY(1px);
+}
+
+button.primary {
+  border-color: rgba(76, 141, 255, 0.65);
+  background: rgba(76, 141, 255, 0.16);
+}
+
+button.primary:hover {
+  background: rgba(76, 141, 255, 0.24);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.status {
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.status strong {
+  color: var(--text);
+}
+
+.tableHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tableHeader h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.tableActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tableWrap {
+  overflow: auto;
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 740px;
+}
+
+.table thead th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  color: rgba(232, 238, 252, 0.82);
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(11, 16, 32, 0.55);
+  position: sticky;
+  top: 0;
+}
+
+.table tbody td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(232, 238, 252, 0.08);
+  vertical-align: middle;
+}
+
+.table tbody tr:hover td {
+  background: rgba(11, 16, 32, 0.25);
+}
+
+.colSelect {
+  width: 46px;
+}
+
+.cellInput {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(232, 238, 252, 0.16);
+  background: rgba(11, 16, 32, 0.55);
+  color: var(--text);
+}
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+    monospace;
+  font-size: 12px;
+  color: rgba(232, 238, 252, 0.8);
+}
+
+.preview {
+  margin: 10px 0 0;
+  max-height: 380px;
+  overflow: auto;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(11, 16, 32, 0.55);
+  color: rgba(232, 238, 252, 0.88);
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 8px 0 0;
+}
+
+.planGrid {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 980px) {
+  .planGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.planCard {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: rgba(11, 16, 32, 0.25);
+}
+
+.viz {
+  width: 100%;
+  height: 520px;
+  border-radius: 10px;
+  border: 1px solid rgba(232, 238, 252, 0.12);
+  background: rgba(11, 16, 32, 0.35);
+}
+
+.cuts {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.cutRow {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(232, 238, 252, 0.1);
+  background: rgba(11, 16, 32, 0.35);
+}
+
+.cutRow.pieceCut {
+  border-left: 6px solid rgba(76, 141, 255, 0.65);
+}
+
+.cutTag {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+    monospace;
+  font-size: 12px;
+  color: rgba(232, 238, 252, 0.82);
+}
+
+.codePreview {
+  max-height: 520px;
+  white-space: pre;
+}

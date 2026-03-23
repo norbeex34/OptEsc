@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Escuadradora - Optimización</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header class="header">
+        <h1>RCP16 Optimización</h1>
+        <p>Definí placa y piezas, generá planes de corte y exportá el RCP16.</p>
+      </header>
+
+      <section class="card">
+        <div class="grid3">
+          <div class="field">
+            <label for="boardLargo">Placa ancho (mm)</label>
+            <input id="boardLargo" type="text" inputmode="numeric" value="2730" dir="ltr" onfocus="this.select()" />
+          </div>
+          <div class="field">
+            <label for="boardAncho">Placa largo (mm)</label>
+            <input id="boardAncho" type="text" inputmode="numeric" value="1830" dir="ltr" onfocus="this.select()" />
+          </div>
+          <div class="field">
+            <label for="boardVeta">Placa veta</label>
+            <select id="boardVeta">
+              <option value="1" selected>1</option>
+              <option value="0">0</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="tableHeader">
+          <h2>Piezas</h2>
+          <div class="tableActions">
+            <button id="addPiece" type="button">Agregar pieza</button>
+            <button id="removeSelected" type="button">Eliminar seleccionadas</button>
+          </div>
+        </div>
+
+        <div class="tableWrap">
+          <table class="table" id="piecesTable">
+            <thead>
+              <tr>
+                <th class="colSelect"></th>
+                <th>Nombre</th>
+                <th>Cantidad</th>
+                <th>Ancho (mm)</th>
+                <th>Largo (mm)</th>
+                <th>Veta</th>
+                <th>Rotar</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="actions">
+          <button id="optimizeBtn" class="primary" type="button">Optimizar</button>
+          <button id="exportBtn" type="button" disabled>Exportar RCP16 (plan seleccionado)</button>
+          <div class="field">
+            <label for="incrementalMode">Fresado</label>
+            <input id="incrementalMode" type="checkbox" />
+          </div>
+        </div>
+
+        <div class="status" id="status"></div>
+      </section>
+
+      <section class="card">
+        <div class="tableHeader">
+          <h2>Planes</h2>
+          <div class="tableActions" id="plansBar"></div>
+        </div>
+        <div class="planGrid">
+          <div class="planCard">
+            <div class="field">
+              <label for="planName">Nombre del plan</label>
+              <input id="planName" type="text" value="Plan 1" />
+            </div>
+            <div class="status" id="planMeta"></div>
+            <div class="cuts" id="cuts"></div>
+          </div>
+          <div class="planCard">
+            <svg id="viz" class="viz" viewBox="0 0 1000 700" preserveAspectRatio="xMidYMid meet"></svg>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Previsualización RCP16</h2>
+        <p class="muted">Se muestra el código exportable del plan seleccionado con líneas numeradas.</p>
+        <pre class="preview codePreview" id="codePreview"></pre>
+      </section>
+    </main>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
