@@ -107,9 +107,6 @@ export function generatePlans(board, piecesExpanded) {
   const plans = [];
   const p1 = shelfPack(board, piecesExpanded, "x");
   if (p1.ok) plans.push({ id: "plan-x", name: "Plan A", ...p1, cuts: buildCutsFromShelves(p1) });
-  const swappedBoard = { ancho: board.largo, largo: board.ancho };
-  const p2 = shelfPack(swappedBoard, piecesExpanded, "y");
-  if (p2.ok) plans.push({ id: "plan-y", name: "Plan B", ...p2, cuts: buildCutsFromShelves(p2) });
 
   plans.sort((a, b) => a.waste - b.waste);
   return plans.map((p) => clone(p));

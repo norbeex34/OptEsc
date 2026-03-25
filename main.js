@@ -252,11 +252,10 @@ function drawViz(board, plan) {
   svg.appendChild(boardRect);
 
   for (const pl of plan.placements) {
-    const isY = pl.axis === "y";
-    const px = isY ? pl.y : pl.x;
-    const py = isY ? pl.x : pl.y;
-    const pw = isY ? pl.h : pl.w;
-    const ph = isY ? pl.w : pl.h;
+    const px = pl.x;
+    const py = pl.y;
+    const pw = pl.w;
+    const ph = pl.h;
 
     const color = colorForPieceName(pl.name);
     const r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
@@ -286,15 +285,12 @@ function updateCodePreview() {
     els.codePreview.textContent = "Generá y seleccioná un plan para ver el RCP16.";
     return;
   }
-  const pieces = plan.placements.map((pl) => {
-    const isY = pl.axis === "y";
-    return {
-      name: pl.name,
-      largo: isY ? pl.h : pl.w,
-      ancho: isY ? pl.w : pl.h,
-      veta: pl.veta,
-    };
-  });
+  const pieces = plan.placements.map((pl) => ({
+    name: pl.name,
+    largo: pl.w,
+    ancho: pl.h,
+    veta: pl.veta,
+  }));
   try {
     const csv = buildRcp16Csv({ board, pieces, incremental: els.incrementalMode.checked === true });
     els.codePreview.textContent = numberLines(csv);
@@ -385,15 +381,12 @@ function exportSelectedPlan() {
   const plan = state.plans.find((p) => p.id === state.selectedPlanId);
   if (!plan) return;
 
-  const pieces = plan.placements.map((pl) => {
-    const isY = pl.axis === "y";
-    return {
-      name: pl.name,
-      largo: isY ? pl.h : pl.w,
-      ancho: isY ? pl.w : pl.h,
-      veta: pl.veta,
-    };
-  });
+  const pieces = plan.placements.map((pl) => ({
+    name: pl.name,
+    largo: pl.w,
+    ancho: pl.h,
+    veta: pl.veta,
+  }));
 
   let csv = "";
   try {
