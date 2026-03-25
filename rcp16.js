@@ -63,7 +63,7 @@ export function buildRcp16Csv({ board, pieces, incremental = false }) {
     if (idx >= 0 && idx < records.length) records[idx] = FOOTER_LINES[i];
   }
 
-  records[0] = "4,0,0,18332,1,";
+  records[0] = "4,0,0,0,1,";
   records[1] = "2,0,0,0,0,";
   records[2] = `0,${Math.round(board.ancho * MEASURE_SCALE)},0,${Math.round(
     board.largo * MEASURE_SCALE
