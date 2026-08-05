@@ -35,7 +35,12 @@ async function runPass({ expandedOrder, gridW, gridH, cellSize, spacingCells, ed
 
   const newSheet = () => {
     const mask = new Uint8Array(gridW * gridH);
-    const sheet = { occupied: mask, integral: buildIntegral(mask, gridW, gridH), placements: [] };
+    const sheet = {
+      occupied: mask, // huella real de las piezas, sin halo de separación
+      dilatedOccupied: mask, // huella + halo de separación (se comparte al inicio, misma referencia, hasta la primera dilatación)
+      integral: buildIntegral(mask, gridW, gridH),
+      placements: []
+    };
     sheets.push(sheet);
     return sheet;
   };
@@ -63,50 +68,28 @@ async function runPass({ expandedOrder, gridW, gridH, cellSize, spacingCells, ed
         const rotated = angle === 0 ? piece.points : rotatePoints(piece.points, angle);
         const { mask: trueMask, w: mw, h: mh } = rasterizePolygon(rotated, cellSize);
 
-        // Para que la separación realmente aleje una pieza de otra, la
-        // máscara con la que se busca lugar (`searchMask`) debe tener margen
-        // extra alrededor de la pieza real (dilatar dentro del mismo tamaño
-        // no sirve: una forma sólida no tiene "aire" propio hacia dónde
-        // crecer). Se arma un lienzo más grande, se centra la pieza real en
-        // él con el padding del espaciado, y recién ahí se dilata.
-        let searchMask = trueMask;
-        let maskW = mw;
-        let maskH = mh;
-        let trueOffsetX = 0;
-        let trueOffsetY = 0;
+        if (mw > gridW || mh > gridH) continue;
 
-        if (spacingCells > 0) {
-          maskW = mw + spacingCells * 2;
-          maskH = mh + spacingCells * 2;
-          const padded = new Uint8Array(maskW * maskH);
-          for (let ry = 0; ry < mh; ry++) {
-            for (let rx = 0; rx < mw; rx++) {
-              if (trueMask[ry * mw + rx]) {
-                padded[(ry + spacingCells) * maskW + (rx + spacingCells)] = 1;
-              }
-            }
-          }
-          searchMask = dilateMask(padded, maskW, maskH, spacingCells);
-          trueOffsetX = spacingCells;
-          trueOffsetY = spacingCells;
-        }
-
-        if (maskW > gridW || maskH > gridH) continue;
-
+        // Se busca con la máscara VERDADERA de la pieza (sin padding) contra
+        // el mapa de ocupado-más-halo (que ya incluye la separación de las
+        // piezas puestas antes). Así la posición encontrada es directamente
+        // la final: no hace falta sumarle ningún corrimiento, y una pieza
+        // puede quedar pegada al borde de la hoja o de otra sin un hueco
+        // espurio quando no hace falta.
         let found = null;
-        for (let y = 0; y <= gridH - maskH && !found; y++) {
-          for (let x = 0; x <= gridW - maskW && !found; x++) {
-            const freeSum = integralRectSum(attemptSheet.integral, gridW, x, y, x + maskW, y + maskH);
+        for (let y = 0; y <= gridH - mh && !found; y++) {
+          for (let x = 0; x <= gridW - mw && !found; x++) {
+            const freeSum = integralRectSum(attemptSheet.integral, gridW, x, y, x + mw, y + mh);
             if (freeSum === 0) {
               // Región completamente libre: no hace falta comparar máscara.
               found = { x, y };
               break;
             }
-            // Región con ocupación parcial: comparar máscara exacta (forma real + halo de separación).
+            // Región con ocupación parcial: comparar máscara exacta.
             let overlap = false;
-            for (let ry = 0; ry < maskH && !overlap; ry++) {
-              for (let rx = 0; rx < maskW; rx++) {
-                if (searchMask[ry * maskW + rx] && attemptSheet.occupied[(y + ry) * gridW + (x + rx)]) {
+            for (let ry = 0; ry < mh && !overlap; ry++) {
+              for (let rx = 0; rx < mw; rx++) {
+                if (trueMask[ry * mw + rx] && attemptSheet.dilatedOccupied[(y + ry) * gridW + (x + rx)]) {
                   overlap = true;
                   break;
                 }
@@ -117,25 +100,59 @@ async function runPass({ expandedOrder, gridW, gridH, cellSize, spacingCells, ed
         }
 
         if (found && (!best || found.y < best.found.y || (found.y === best.found.y && found.x < best.found.x))) {
-          best = { angle, rotated, trueMask, mw, mh, trueOffsetX, trueOffsetY, found };
+          best = { angle, rotated, trueMask, mw, mh, found };
         }
       }
 
       if (best) {
-        const { angle, rotated, trueMask, mw, mh, trueOffsetX, trueOffsetY, found } = best;
-        const trueX = found.x + trueOffsetX;
-        const trueY = found.y + trueOffsetY;
+        const { angle, rotated, trueMask, mw, mh, found } = best;
         for (let ry = 0; ry < mh; ry++) {
           for (let rx = 0; rx < mw; rx++) {
             if (trueMask[ry * mw + rx]) {
-              attemptSheet.occupied[(trueY + ry) * gridW + (trueX + rx)] = 1;
+              attemptSheet.occupied[(found.y + ry) * gridW + (found.x + rx)] = 1;
             }
           }
         }
-        attemptSheet.integral = buildIntegral(attemptSheet.occupied, gridW, gridH);
 
-        const xMm = edgeMargin + trueX * cellSize;
-        const yMm = edgeMargin + trueY * cellSize;
+        // Dilatación LOCAL (chica, del tamaño de esta pieza) que se vuelca al
+        // mapa compartido de ocupado-más-halo, en vez de dilatar la hoja
+        // entera cada vez (eso sería mucho más lento). Con separación 0 esto
+        // es solo una copia directa de la huella real.
+        if (attemptSheet.dilatedOccupied === attemptSheet.occupied) {
+          attemptSheet.dilatedOccupied = new Uint8Array(attemptSheet.occupied);
+        }
+        if (spacingCells > 0) {
+          const padW = mw + spacingCells * 2;
+          const padH = mh + spacingCells * 2;
+          const padded = new Uint8Array(padW * padH);
+          for (let ry = 0; ry < mh; ry++) {
+            for (let rx = 0; rx < mw; rx++) {
+              if (trueMask[ry * mw + rx]) padded[(ry + spacingCells) * padW + (rx + spacingCells)] = 1;
+            }
+          }
+          const localDilated = dilateMask(padded, padW, padH, spacingCells);
+          const baseX = found.x - spacingCells;
+          const baseY = found.y - spacingCells;
+          for (let ry = 0; ry < padH; ry++) {
+            const gy = baseY + ry;
+            if (gy < 0 || gy >= gridH) continue;
+            for (let rx = 0; rx < padW; rx++) {
+              const gx = baseX + rx;
+              if (gx < 0 || gx >= gridW) continue;
+              if (localDilated[ry * padW + rx]) attemptSheet.dilatedOccupied[gy * gridW + gx] = 1;
+            }
+          }
+        } else {
+          for (let ry = 0; ry < mh; ry++) {
+            for (let rx = 0; rx < mw; rx++) {
+              if (trueMask[ry * mw + rx]) attemptSheet.dilatedOccupied[(found.y + ry) * gridW + (found.x + rx)] = 1;
+            }
+          }
+        }
+        attemptSheet.integral = buildIntegral(attemptSheet.dilatedOccupied, gridW, gridH);
+
+        const xMm = edgeMargin + found.x * cellSize;
+        const yMm = edgeMargin + found.y * cellSize;
         attemptSheet.placements.push({
           id: `${piece.id}-${idx}`,
           name: piece.name,
@@ -244,10 +261,19 @@ function expandModulePlacements(sheets) {
 // menos hojas usa (y, a igualdad de hojas, la más compacta), para aprovechar
 // mejor el material en vez de conformarse con la primera solución válida.
 // `onProgress` se llama entre piezas para no congelar la UI.
-export async function nestPieces({ sheetWidth, sheetHeight, spacing, margin = 0, pieces, onProgress }) {
+function throwIfAborted(signal) {
+  if (signal?.aborted) {
+    const err = new Error('Optimización cancelada por un recálculo más nuevo.');
+    err.name = 'AbortError';
+    throw err;
+  }
+}
+
+export async function nestPieces({ sheetWidth, sheetHeight, spacing, margin = 0, pieces, onProgress, signal }) {
   if (sheetWidth <= 0 || sheetHeight <= 0) {
     throw new Error('El tamaño de hoja debe ser mayor a 0.');
   }
+  throwIfAborted(signal);
 
   // El margen deja un borde sin piezas alrededor de toda la hoja; el
   // anidado corre sobre el área útil (hoja menos margen a cada lado).
@@ -332,6 +358,8 @@ export async function nestPieces({ sheetWidth, sheetHeight, spacing, margin = 0,
   // Nunca redondear una separación pedida (>0) a 0 celdas.
   const spacingCells = edgeSpacing > 0 ? Math.max(1, Math.round(edgeSpacing / cellSize)) : 0;
 
+  throwIfAborted(signal);
+
   const byAreaDesc = baseExpanded.slice().sort((a, b) => polygonArea(b.points) - polygonArea(a.points));
 
   // La primera pasada es la determinista (grandes primero, sin aleatoriedad).
@@ -356,6 +384,7 @@ export async function nestPieces({ sheetWidth, sheetHeight, spacing, margin = 0,
   let bestKey = null;
 
   for (let pass = 0; pass < orderings.length; pass++) {
+    throwIfAborted(signal);
     const { order, randomizeRotationOrder } = orderings[pass];
     const sheets = await runPass({
       expandedOrder: order,
@@ -366,6 +395,7 @@ export async function nestPieces({ sheetWidth, sheetHeight, spacing, margin = 0,
       edgeMargin,
       randomizeRotationOrder,
       onPieceDone: async (done, total) => {
+        throwIfAborted(signal);
         if (onProgress) onProgress(done, total, pass + 1, orderings.length);
         if (done % 4 === 0) await sleep(0); // ceder el hilo principal
       }

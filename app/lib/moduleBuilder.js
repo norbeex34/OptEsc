@@ -46,42 +46,27 @@ export function buildPairModule(points, spacingMm, allowRotation) {
         if (maskA[ry * wA + rx]) occupied[ry * gridW + rx] = 1;
       }
     }
+    // La grilla acá es chica (no es la hoja completa), así que dilatarla
+    // entera es barato: se dilata lo YA ocupado (pieza A) en vez de la pieza
+    // que se busca ubicar, para que la posición encontrada sea directamente
+    // la final sin sumarle ningún corrimiento (evita un desplazamiento
+    // espurio del tamaño de la separación cuando la pieza B queda en el
+    // borde de la grilla, donde no hace falta hueco).
+    const dilatedOccupied = spacingCells > 0 ? dilateMask(occupied, gridW, gridH, spacingCells) : occupied;
 
     for (const angleB of rotations) {
       const rotB = angleB === 0 ? points : rotatePoints(points, angleB);
       const { mask: trueMaskB, w: mwB, h: mhB } = rasterizePolygon(rotB, cellSize);
 
-      let searchMask = trueMaskB;
-      let maskW = mwB;
-      let maskH = mhB;
-      let offX = 0;
-      let offY = 0;
-
-      if (spacingCells > 0) {
-        maskW = mwB + spacingCells * 2;
-        maskH = mhB + spacingCells * 2;
-        const padded = new Uint8Array(maskW * maskH);
-        for (let ry = 0; ry < mhB; ry++) {
-          for (let rx = 0; rx < mwB; rx++) {
-            if (trueMaskB[ry * mwB + rx]) {
-              padded[(ry + spacingCells) * maskW + (rx + spacingCells)] = 1;
-            }
-          }
-        }
-        searchMask = dilateMask(padded, maskW, maskH, spacingCells);
-        offX = spacingCells;
-        offY = spacingCells;
-      }
-
-      if (maskW > gridW || maskH > gridH) continue;
+      if (mwB > gridW || mhB > gridH) continue;
 
       let found = null;
-      for (let y = 0; y <= gridH - maskH && !found; y++) {
-        for (let x = 0; x <= gridW - maskW && !found; x++) {
+      for (let y = 0; y <= gridH - mhB && !found; y++) {
+        for (let x = 0; x <= gridW - mwB && !found; x++) {
           let overlap = false;
-          for (let ry = 0; ry < maskH && !overlap; ry++) {
-            for (let rx = 0; rx < maskW; rx++) {
-              if (searchMask[ry * maskW + rx] && occupied[(y + ry) * gridW + (x + rx)]) {
+          for (let ry = 0; ry < mhB && !overlap; ry++) {
+            for (let rx = 0; rx < mwB; rx++) {
+              if (trueMaskB[ry * mwB + rx] && dilatedOccupied[(y + ry) * gridW + (x + rx)]) {
                 overlap = true;
                 break;
               }
@@ -92,8 +77,8 @@ export function buildPairModule(points, spacingMm, allowRotation) {
       }
       if (!found) continue;
 
-      const bTrueX = (found.x + offX) * cellSize;
-      const bTrueY = (found.y + offY) * cellSize;
+      const bTrueX = found.x * cellSize;
+      const bTrueY = found.y * cellSize;
       const bFinal = translatePoints(rotB, bTrueX, bTrueY);
 
       const combined = rotA.concat(bFinal);

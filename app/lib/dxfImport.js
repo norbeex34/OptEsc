@@ -240,16 +240,36 @@ export async function extractPiecesFromDxf(file) {
   const extent = Math.max(bbox.width, bbox.height, 1);
   const tolerance = Math.max(extent * 0.002, 0.05);
 
-  if (openSegments.length > 0) {
-    const chains = chainSegments(openSegments, tolerance);
-    for (const chain of chains) {
-      if (chain.length < 3) continue;
-      if (!pointsClose(chain[0], chain[chain.length - 1], tolerance)) continue;
-      const points = dedupe(chain);
-      if (points.length < 3) continue;
-      const area = polygonArea(points);
-      if (area >= 1) closedCandidates.push({ points, area });
+  // Unir tramos sueltos (chainSegments) es O(n²) y es lo que hace lenta la
+  // importación de DXF reales: suelen traer, además del contorno, muchas
+  // entidades de detalle (cotas, achurado, líneas de construcción) que no
+  // aportan nada porque al final solo nos quedamos con el contorno de mayor
+  // área. Para evitar ese costo innecesario:
+  // 1) Si ya hay un contorno cerrado que cubre gran parte del dibujo, es casi
+  //    seguro el contorno exterior: nos salteamos el unido de tramos por
+  //    completo (los tramos sueltos son detalle, se descartan).
+  // 2) Si no hay uno dominante pero hay demasiados tramos sueltos como para
+  //    unirlos en un tiempo razonable, se limita el intento y se recurre a
+  //    la envolvente convexa como aproximación en vez de colgar el import.
+  const overallArea = bbox.width * bbox.height;
+  const dominantCandidate = closedCandidates.some((c) => c.area >= overallArea * 0.35);
+  const MAX_SEGMENTS_TO_CHAIN = 600;
+
+  if (openSegments.length > 0 && !dominantCandidate) {
+    if (openSegments.length <= MAX_SEGMENTS_TO_CHAIN) {
+      const chains = chainSegments(openSegments, tolerance);
+      for (const chain of chains) {
+        if (chain.length < 3) continue;
+        if (!pointsClose(chain[0], chain[chain.length - 1], tolerance)) continue;
+        const points = dedupe(chain);
+        if (points.length < 3) continue;
+        const area = polygonArea(points);
+        if (area >= 1) closedCandidates.push({ points, area });
+      }
     }
+    // Si hay demasiados tramos sueltos, no se intenta unirlos: se sigue de
+    // largo y, si no queda ningún contorno cerrado utilizable, se cae en la
+    // envolvente convexa de todos los puntos (más abajo).
   }
 
   let outerPoints;

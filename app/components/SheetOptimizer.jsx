@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Upload, Trash2, Plus, Play, Printer, AlertCircle, Layers,
   Ruler, LayoutGrid, RotateCw, PackageSearch
@@ -166,7 +166,20 @@ const SheetOptimizer = () => {
     setPieces(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
   };
 
+  // Cada llamada a runOptimize cancela la anterior si todavía estaba
+  // corriendo (en vez de dejarla terminar en paralelo). Sin esto, cambiar un
+  // campo varias veces seguidas (p.ej. la separación entre piezas) podía
+  // apilar varios cálculos pesados compitiendo por el mismo hilo y trababa
+  // toda la interfaz.
+  const activeControllerRef = useRef(null);
+
   const runOptimize = async () => {
+    if (activeControllerRef.current) {
+      activeControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    activeControllerRef.current = controller;
+
     if (pieces.length === 0) {
       setResult(null);
       setNestError(null);
@@ -182,14 +195,20 @@ const SheetOptimizer = () => {
         spacing,
         margin: edgeMargin,
         pieces,
-        onProgress: (done, total, pass, totalPasses) => setProgress({ done, total, pass, totalPasses })
+        signal: controller.signal,
+        onProgress: (done, total, pass, totalPasses) => {
+          if (controller.signal.aborted) return;
+          setProgress({ done, total, pass, totalPasses });
+        }
       });
+      if (controller.signal.aborted) return;
       setResult(res);
     } catch (err) {
+      if (err?.name === 'AbortError') return; // reemplazado por un recálculo más nuevo
       setNestError(err.message || 'No se pudo completar la optimización.');
       setResult(null);
     } finally {
-      setIsOptimizing(false);
+      if (activeControllerRef.current === controller) setIsOptimizing(false);
     }
   };
 
