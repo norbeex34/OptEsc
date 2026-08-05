@@ -24,12 +24,21 @@ export function buildPairModule(points, spacingMm, allowRotation) {
 
   const singleBBox = polygonBBox(points);
   const maxDim = Math.max(singleBBox.width, singleBBox.height, 1);
+  const spacing = Math.max(0, spacingMm || 0);
   // Resolución fina: esto se calcula una sola vez por forma (no por pieza),
   // así que el costo es insignificante aunque la grilla sea chica y precisa.
-  const cellSize = Math.max(0.25, maxDim / 150);
-  const spacing = Math.max(0, spacingMm || 0);
+  // Pero si la separación pedida es grande en relación al tamaño de la
+  // pieza, esta grilla virtual (2 piezas + separación de sobra) puede
+  // crecer sin límite; se acota igual que la grilla principal de la hoja
+  // para no intentar reservar millones de celdas.
+  const maxGridSize = 300;
+  const desiredExtent = maxDim * 2 + spacing * 2 + 10;
+  let cellSize = Math.max(0.25, maxDim / 150);
+  if (desiredExtent / cellSize > maxGridSize) {
+    cellSize = desiredExtent / maxGridSize;
+  }
   const spacingCells = spacing > 0 ? Math.max(1, Math.round(spacing / cellSize)) : 0;
-  const gridSize = Math.ceil((maxDim * 2 + spacing * 2 + 10) / cellSize);
+  const gridSize = Math.min(maxGridSize, Math.ceil(desiredExtent / cellSize));
   const gridW = gridSize;
   const gridH = gridSize;
 
