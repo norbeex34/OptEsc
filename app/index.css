@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  background: var(--page-bg, #18191c);
+}
+
+html, body {
+  min-height: 100%;
+}
+
+body {
+  overscroll-behavior-y: none;
+}
